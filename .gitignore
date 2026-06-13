@@ -1,0 +1,14 @@
+Debug/
+*.o
+*.d
+*.d_raw
+*.out
+*.map
+*.hex
+*.bin
+__pycache__/
+.clangd/
+.settings/
+*.ccxml
+*.projectspec
+*.linkInfo.xml
