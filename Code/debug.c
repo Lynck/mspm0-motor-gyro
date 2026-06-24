@@ -41,8 +41,7 @@ void Debug_Init(void)
     /* ???: 4MHz / 16 / (2 + 11/16) ? 115200 */
     DL_UART_Main_setBaudRateDivisor(DBG_UART, 2, 11);
 
-    /* ?? TX FIFO????????? */
-    DL_UART_Main_setTxFIFOThreshold(DBG_UART, DL_UART_TX_FIFO_LEVEL_1_2_FULL);
+    /* TX FIFO ??? (????: TX FIFO ???) */
 
     /* ?? UART0 */
     DL_UART_Main_enable(DBG_UART);
