@@ -89,6 +89,8 @@ int main(void)
     int tick = 0;
 
     while (1) {
+        Wheels_SetSpeeds(10, 10, 10, 10);
+
         delay_ms(10);  /* 10ms ?? */
         tick++;
 
