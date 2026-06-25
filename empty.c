@@ -1,9 +1,21 @@
 ﻿/*
  * empty.c — MSPM0G3507 四轮底盘主程序
+ *
+ * 硬件:
+ *   UART0 (PA9=TX, PA10=RX) — PC 调试 (CH340)
+ *   UART1 (PA8=TX, PA9=RX)   — 四路电机驱动板 (Modbus RTU)
+ *   UART3 (PB2=TX, PB3=RX)   — 陀螺仪 (Modbus RTU, RX 中断)
+ *
+ * SysConfig:
+ *   user_INST     = UART0 (Debug)
+ *   Motor_INST    = UART1 (电机)
+ *   MSPMotor_INST = UART3 (陀螺仪)
  */
 
 #include "ti_msp_dl_config.h"
+#include "Code/debug.h"
 #include "Code/motor_ctrl.h"
+#include "Code/line_patrol.h"
 
 volatile unsigned int delay_times = 0;
 
@@ -17,27 +29,23 @@ int main(void)
 {
     SYSCFG_DL_init();
 
+    Debug_Init();
+    delay_ms(500);
+    Debug_Puts("\r\n=== MSPM0G3507 4-Wheel ===\r\n");
+
     MotorCtrl_Init();
-    delay_ms(200);
+    delay_ms(100);
     MotorCtrl_Start();
-    delay_ms(200);
+    delay_ms(100);
+    Debug_Puts("[Motor] started\r\n");
 
+    LinePatrol_Init();
+    Debug_Puts("[Sensor] ready\r\n");
+
+    /* 主循环: 以速度 10 循迹 */
     while (1) {
-        /* 前进 3 秒 */
-        Wheels_SetSpeeds(200, 200, 200, 200);
-        delay_ms(3000);
-
-        /* 停止 1 秒 */
-        Wheels_SetSpeeds(0, 0, 0, 0);
-        delay_ms(1000);
-
-        /* 原地右转 1 秒 */
-        Wheels_SetSpeeds(100, 100, -100, -100);
-        delay_ms(1000);
-
-        /* 停止 1 秒 */
-        Wheels_SetSpeeds(0, 0, 0, 0);
-        delay_ms(1000);
+        delay_ms(5);
+        LinePatrol_Track(10);
     }
 }
 
