@@ -22,6 +22,7 @@
 #include "Code/debug.h"
 #include "Code/motor_ctrl.h"
 #include "Code/gyro.h"
+#include "line_patrol.h"
 
 /* SysTick ???? (? 1ms ? 1) */
 volatile unsigned int delay_times = 0;
@@ -43,88 +44,15 @@ int main(void)
        - UART3 (MSPMotor_INST): PB2=TX, PB3=RX, 115200 8N1, RX??
        - SysTick: 1ms (80MHz / 80000)
        - ??: SYSPLL 80MHz */
-    SYSCFG_DL_init();
-
-    /* ????????? UART0 */
-    Debug_Init();
-
-    delay_ms(2000);  /* ????????? */
-
-    Debug_Puts("\r\n=== MSPM0G3507 4-Wheel Controller ===\r\n");
-
-    /* ---- ?????? ---- */
-    /* ?? UART3 RX ?? (SysConfig ??? MSPMotor_INST ????) */
-    NVIC_ClearPendingIRQ(MSPMotor_INST_INT_IRQN);
-    NVIC_EnableIRQ(MSPMotor_INST_INT_IRQN);
-
-    /* ????????? */
-    Gyro_Init();
-    delay_ms(100);
-    Debug_Puts("[Gyro]  configured\r\n");
-
-    /* ---- ???????? ---- */
-    MotorCtrl_Init();
-    delay_ms(200);
-
-    /* ?????? */
-    MotorCtrl_Start();
-    delay_ms(200);
-    Debug_Puts("[Motor] started\r\n");
-
-    Debug_Puts("[System] READY\r\n");
-    Debug_Puts("------------------------------\r\n");
-
-    /* ============================================================
-     * ???
-     *
-     * ??: 10ms (100Hz)
-     *   ???: ???????
-     *   ? 500ms: ???? + ??????
-     *
-     * ???????????????????:
-     *   - ?? gyro_angle (?? 0.01?) ?????
-     *   - ?? gyro_dps   (?? 0.01?/s) ??????
-     *   - ?? Wheels_SetSpeeds() ? Wheels_DiffDrive() ????
-     * ============================================================ */
-    int tick = 0;
+    SYSCFG_DL_init();       // SysConfig 初始化（含GPIO + 时钟）
+    
+    MotorCtrl_Init();       // 电机驱动初始化
+    MotorCtrl_Start();      // 启动电机
+    LinePatrol_Init();      // 灰度传感器初始化
 
     while (1) {
-        Wheels_SetSpeeds(10, 10, 10, 10);
-
-        delay_ms(10);  /* 10ms ?? */
-        tick++;
-
-        /* ??????? */
-        Gyro_RequestData();
-
-        /* ???????????? */
-        if (gyro_rx_done) {
-            gyro_rx_done = 0;
-
-            /* gyro_angle: ?? (0.01? ??) */
-            /* gyro_dps:   ??? (0.01?/s ??) */
-
-            /* ---- ???????????? ---- */
-        }
-
-        /* ? 500ms (50 ? 10ms) ?????? + ?? */
-        if (tick >= 50) {
-            tick = 0;
-
-            /* ??????? */
-            Debug_Puts("A=");  Debug_PutDec((int)gyro_angle);
-            Debug_Puts("  W="); Debug_PutDec((int)gyro_dps);
-            Debug_Puts("\r\n");
-
-            /* ---- ??: ?????????????? ----
-               ??? 10? ?? 1 ????, ?? ?100 */
-            int16_t turn = gyro_angle / 10;
-            if (turn > 100)  turn = 100;
-            if (turn < -100) turn = -100;
-
-            /* ????: ??=0, ??=turn (????) */
-            Wheels_DiffDrive(0, turn);
-        }
+        delay_ms(5);                    // 5ms 一次
+        LinePatrol_Track(200);          // 以速度 200 循迹，PID 自动转向
     }
 }
 

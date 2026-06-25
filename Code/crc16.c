@@ -60,12 +60,7 @@ static unsigned char auchCRCLo[256] = {
 0x43, 0x83, 0x41, 0x81, 0x80, 0x40
 };
 
-/*
- * CRC16 — Modbus RTU 标准 CRC 校验(查表法)
- * @param puchMsg  数据缓冲区指针
- * @param usDataLen 数据长度(字节)
- * @return 16位 CRC 值
- */
+/* Modbus CRC16 查表法 */
 unsigned short CRC16(uint8_t *puchMsg, unsigned short usDataLen)
 {
     unsigned char uchCRCHi = 0xFF;
