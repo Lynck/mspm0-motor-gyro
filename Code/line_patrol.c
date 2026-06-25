@@ -78,8 +78,8 @@ int16_t LinePatrol_PID(int16_t dev)
 
     /* I — 始终累加，取消积分分离（低速循迹偏差本身就不会太大） */
     pid_integral += LinePatrol_Ki * err;
-    if (pid_integral > 150.0f)  pid_integral = 150.0f;
-    if (pid_integral < -150.0f) pid_integral = -150.0f;
+    if (pid_integral > 20.0f)  pid_integral = 20.0f;
+    if (pid_integral < -20.0f) pid_integral = -20.0f;
 
     /* D */
     float d = LinePatrol_Kd * (err - (float)pid_last_dev);
@@ -87,8 +87,8 @@ int16_t LinePatrol_PID(int16_t dev)
 
     /* 合成 + 限幅 (减小到 ±150，低速用不着太大的转向) */
     float out = p + pid_integral + d;
-    if (out > 150.0f)  out = 150.0f;
-    if (out < -150.0f) out = -150.0f;
+    if (out > 20.0f)  out = 20.0f;
+    if (out < -20.0f) out = -20.0f;
 
     pid_output = (int16_t)out;
     return pid_output;
