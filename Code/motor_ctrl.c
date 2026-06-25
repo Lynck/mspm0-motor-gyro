@@ -19,8 +19,8 @@
 #include "motor_ctrl.h"
 #include "crc16.h"
 
-/* 驱动板 UART — 对应 SysConfig user_INST (UART0) */
-#define DRV_UART  user_INST
+/* 驱动板 UART — 对应 SysConfig Motor_INST (UART1: PA8=TX, PA9=RX) */
+#define DRV_UART  Motor_INST
 
 /* Modbus 从机地址 */
 #define DRV_ADDR  0x0A
