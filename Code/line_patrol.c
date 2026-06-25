@@ -12,10 +12,10 @@
 #include "line_patrol.h"
 #include "motor_ctrl.h"
 
-/* PID 参数 — 可在线调整 */
-float LinePatrol_Kp = 3.0f;   /* 比例系数 */
-float LinePatrol_Ki = 0.01f;  /* 积分系数 */
-float LinePatrol_Kd = 1.5f;   /* 微分系数 */
+/* PID 参数 — 低速循迹优化 */
+float LinePatrol_Kp = 1.2f;   /* 比例 (减小，避免猛转) */
+float LinePatrol_Ki = 0.05f;  /* 积分 (增大，确保持续修正) */
+float LinePatrol_Kd = 0.8f;   /* 微分 (减小，避免震荡) */
 
 static float   pid_integral   = 0.0f;
 static int16_t pid_last_dev   = 0;
@@ -38,7 +38,7 @@ static const int8_t weight[8] = {-4, -3, -2, -1, 1, 2, 3, 4};
 static const uint32_t lp_pins[8] = {LP0, LP1, LP2, LP3, LP4, LP5, LP6, LP7};
 static GPIO_Regs * const lp_ports[8] = {GPIOA, GPIOA, GPIOB, GPIOA, GPIOA, GPIOA, GPIOB, GPIOA};
 
-/* GPIO 由 SysConfig 初始化，无需额外操作 */
+/* GPIO 由 SysConfig 初始化 */
 void LinePatrol_Init(void) {}
 
 /* 逐引脚读取 8 路传感器 */
@@ -51,48 +51,49 @@ uint8_t LinePatrol_Read(void)
     return r;
 }
 
-/* 加权计算偏差 (-35 ~ +35, 正=偏右) */
+/* 加权偏差 (-35~+35, 正=偏右) */
 int16_t LinePatrol_CalcDeviation(uint8_t sensors)
 {
     int16_t sum = 0;
     int cnt = 0;
     for (int i = 0; i < 8; i++)
         if (sensors & (1 << i)) { sum += weight[i]; cnt++; }
-    if (cnt == 0 || cnt == 8) return last_valid_dev;
+
+    if (cnt == 0 || cnt == 8)
+        return last_valid_dev;  /* 全白/全黑: 保持上次偏差 */
+
+    /* 归一化 */
     int16_t d = (int16_t)((sum * 10) / cnt);
     last_valid_dev = d;
     return d;
 }
 
-/* 增量式 PID — 积分分离 + 限幅 */
+/* 增量式 PID */
 int16_t LinePatrol_PID(int16_t dev)
 {
     float err = (float)dev;
 
-    /* 比例 */
+    /* P */
     float p = LinePatrol_Kp * err;
 
-    /* 积分 — |err| >= 20 不累加，防止饱和 */
-    if (dev < 20 && dev > -20) {
-        pid_integral += LinePatrol_Ki * err;
-        if (pid_integral > 200.0f)  pid_integral = 200.0f;
-        if (pid_integral < -200.0f) pid_integral = -200.0f;
-    }
+    /* I — 始终累加，取消积分分离（低速循迹偏差本身就不会太大） */
+    pid_integral += LinePatrol_Ki * err;
+    if (pid_integral > 150.0f)  pid_integral = 150.0f;
+    if (pid_integral < -150.0f) pid_integral = -150.0f;
 
-    /* 微分 */
+    /* D */
     float d = LinePatrol_Kd * (err - (float)pid_last_dev);
     pid_last_dev = dev;
 
-    /* 合成 + 限幅 */
+    /* 合成 + 限幅 (减小到 ±150，低速用不着太大的转向) */
     float out = p + pid_integral + d;
-    if (out > 300.0f)  out = 300.0f;
-    if (out < -300.0f) out = -300.0f;
+    if (out > 150.0f)  out = 150.0f;
+    if (out < -150.0f) out = -150.0f;
 
     pid_output = (int16_t)out;
     return pid_output;
 }
 
-/* 重置 PID */
 void LinePatrol_PID_Reset(void)
 {
     pid_integral   = 0.0f;
@@ -101,7 +102,7 @@ void LinePatrol_PID_Reset(void)
     last_valid_dev = 0;
 }
 
-/* 一步循迹 — 最常用接口 */
+/* 一步循迹 */
 void LinePatrol_Track(int16_t speed)
 {
     uint8_t  s     = LinePatrol_Read();
