@@ -13,9 +13,9 @@
 #include "motor_ctrl.h"
 
 /* PID 参数 — 低速循迹优化 */
-float LinePatrol_Kp = 1.2f;   /* 比例 (减小，避免猛转) */
-float LinePatrol_Ki = 0.05f;  /* 积分 (增大，确保持续修正) */
-float LinePatrol_Kd = 0.8f;   /* 微分 (减小，避免震荡) */
+float LinePatrol_Kp = 1.0f;   /* 比例 */
+float LinePatrol_Ki = 0.005f; /* 积分 (极小，抑制震荡) */
+float LinePatrol_Kd = 2.0f;   /* 微分 (增大，快速抑制震荡) */
 
 static float   pid_integral   = 0.0f;
 static int16_t pid_last_dev   = 0;
@@ -76,16 +76,20 @@ int16_t LinePatrol_PID(int16_t dev)
     /* P */
     float p = LinePatrol_Kp * err;
 
-    /* I — 始终累加，取消积分分离（低速循迹偏差本身就不会太大） */
-    pid_integral += LinePatrol_Ki * err;
-    if (pid_integral > 20.0f)  pid_integral = 20.0f;
-    if (pid_integral < -20.0f) pid_integral = -20.0f;
+    /* I — 偏差很小时清零积分(防止左右摆)，偏差>5才累加 */
+    if (dev > 5 || dev < -5) {
+        pid_integral += LinePatrol_Ki * err;
+        if (pid_integral > 15.0f)  pid_integral = 15.0f;
+        if (pid_integral < -15.0f) pid_integral = -15.0f;
+    } else {
+        pid_integral = 0.0f;  /* 偏差小时清零积分 */
+    }
 
     /* D */
     float d = LinePatrol_Kd * (err - (float)pid_last_dev);
     pid_last_dev = dev;
 
-    /* 合成 + 限幅 (减小到 ±150，低速用不着太大的转向) */
+    /* 合成 + 限幅 */
     float out = p + pid_integral + d;
     if (out > 20.0f)  out = 20.0f;
     if (out < -20.0f) out = -20.0f;
