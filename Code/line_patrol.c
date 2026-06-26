@@ -22,7 +22,7 @@ static int16_t pid_last_dev   = 0;
 static int16_t pid_output     = 0;
 static int16_t last_valid_dev = 0;
 
-/* 8 路权重: 最左 -4 ... 最右 +4 */
+/* 8 路权重: OUT1(最左) -4 ... OUT4=-1, OUT5=+1 ... OUT8(最右) +4 */
 static const int8_t weight[8] = {-4, -3, -2, -1, 1, 2, 3, 4};
 
 /* GPIO 由 SysConfig 初始化 */
