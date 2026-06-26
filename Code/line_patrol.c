@@ -27,22 +27,19 @@ static const int8_t weight[8] = {-4, -3, -2, -1, 1, 2, 3, 4};
 /* GPIO 由 SysConfig 初始化 */
 void LinePatrol_Init(void) {}
 
-/* 读取 8 路 — 使用 SysConfig 生成的宏 */
+/* 使用 SysConfig 生成的宏读取 8 路传感器 */
 uint8_t LinePatrol_Read(void)
 {
     uint8_t r = 0;
 
-    /* SysConfig 实际分配:
-       LP_OUT1=PA26, LP_OUT2=PA24, LP_OUT3=PA22, LP_OUT4=PA23,
-       LP_OUT5=PA21, LP_OUT6=PA15, LP_OUT7=PA17, LP_OUT8=PB18 */
-    if (GPIOA->DIN31_0 & DL_GPIO_PIN_26) r |= (1 << 0);  /* OUT1 */
-    if (GPIOA->DIN31_0 & DL_GPIO_PIN_24) r |= (1 << 1);  /* OUT2 */
-    if (GPIOA->DIN31_0 & DL_GPIO_PIN_22) r |= (1 << 2);  /* OUT3 */
-    if (GPIOA->DIN31_0 & DL_GPIO_PIN_23) r |= (1 << 3);  /* OUT4 */
-    if (GPIOA->DIN31_0 & DL_GPIO_PIN_21) r |= (1 << 4);  /* OUT5 */
-    if (GPIOA->DIN31_0 & DL_GPIO_PIN_15) r |= (1 << 5);  /* OUT6 */
-    if (GPIOA->DIN31_0 & DL_GPIO_PIN_17) r |= (1 << 6);  /* OUT7 */
-    if (GPIOB->DIN31_0 & DL_GPIO_PIN_18) r |= (1 << 7);  /* OUT8 */
+    if (GPIO_LinePatrol_LP_OUT1_PORT->DIN31_0 & GPIO_LinePatrol_LP_OUT1_PIN) r |= (1 << 0);
+    if (GPIO_LinePatrol_LP_OUT2_PORT->DIN31_0 & GPIO_LinePatrol_LP_OUT2_PIN) r |= (1 << 1);
+    if (GPIO_LinePatrol_LP_OUT3_PORT->DIN31_0 & GPIO_LinePatrol_LP_OUT3_PIN) r |= (1 << 2);
+    if (GPIO_LinePatrol_LP_OUT4_PORT->DIN31_0 & GPIO_LinePatrol_LP_OUT4_PIN) r |= (1 << 3);
+    if (GPIO_LinePatrol_LP_OUT5_PORT->DIN31_0 & GPIO_LinePatrol_LP_OUT5_PIN) r |= (1 << 4);
+    if (GPIO_LinePatrol_LP_OUT6_PORT->DIN31_0 & GPIO_LinePatrol_LP_OUT6_PIN) r |= (1 << 5);
+    if (GPIO_LinePatrol_LP_OUT7_PORT->DIN31_0 & GPIO_LinePatrol_LP_OUT7_PIN) r |= (1 << 6);
+    if (GPIO_LinePatrol_LP_OUT8_PORT->DIN31_0 & GPIO_LinePatrol_LP_OUT8_PIN) r |= (1 << 7);
 
     return r;
 }
