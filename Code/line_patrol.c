@@ -103,12 +103,27 @@ void LinePatrol_PID_Reset(void)
 }
 
 /* 一步循迹 */
+#include "debug.h"
+
 void LinePatrol_Track(int16_t speed)
 {
     uint8_t  s     = LinePatrol_Read();
     int16_t dev    = LinePatrol_CalcDeviation(s);
     int16_t steer  = LinePatrol_PID(dev);
     Wheels_DiffDrive(speed, steer);
+
+    /* 每 50 次输出传感器状态 (调试用) */
+    static int dbg = 0;
+    if (++dbg >= 50) {
+        dbg = 0;
+        Debug_Puts("S=");
+        for (int i = 7; i >= 0; i--) Debug_PutDec((s >> i) & 1);
+        Debug_Puts(" dev=");
+        Debug_PutDec(dev);
+        Debug_Puts(" steer=");
+        Debug_PutDec(steer);
+        Debug_Puts("\r\n");
+    }
 }
 
 int16_t LinePatrol_GetLastOutput(void)
