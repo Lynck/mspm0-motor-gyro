@@ -28,30 +28,38 @@ static const int8_t weight[8] = {-4, -3, -2, -1, 1, 2, 3, 4};
 /* GPIO 由 SysConfig 初始化 */
 void LinePatrol_Init(void) {}
 
-/* 读取 8 路传感器 — 分两个端口一次性读取 */
+/* 引脚定义 */
+#define LP0_P  GPIOA
+#define LP0_M  DL_GPIO_PIN_26
+#define LP1_P  GPIOA
+#define LP1_M  DL_GPIO_PIN_24
+#define LP2_P  GPIOB
+#define LP2_M  DL_GPIO_PIN_24
+#define LP3_P  GPIOA
+#define LP3_M  DL_GPIO_PIN_22
+#define LP4_P  GPIOA
+#define LP4_M  DL_GPIO_PIN_15
+#define LP5_P  GPIOA
+#define LP5_M  DL_GPIO_PIN_17
+#define LP6_P  GPIOB
+#define LP6_M  DL_GPIO_PIN_18
+#define LP7_P  GPIOA
+#define LP7_M  DL_GPIO_PIN_21
+
+/* GPIO 由 SysConfig 初始化 */
+
+/* 逐引脚读取 — 每次调用都重新读硬件 */
 uint8_t LinePatrol_Read(void)
 {
     uint8_t r = 0;
-
-    /* PA: OUT0=PA26, OUT1=PA24, OUT3=PA22, OUT4=PA15, OUT5=PA17, OUT7=PA21 */
-    uint32_t pa = DL_GPIO_readPins(GPIOA,
-        DL_GPIO_PIN_26 | DL_GPIO_PIN_24 | DL_GPIO_PIN_22 |
-        DL_GPIO_PIN_15 | DL_GPIO_PIN_17 | DL_GPIO_PIN_21);
-
-    /* PB: OUT2=PB24, OUT6=PB18 */
-    uint32_t pb = DL_GPIO_readPins(GPIOB,
-        DL_GPIO_PIN_24 | DL_GPIO_PIN_18);
-
-    /* 映射到 bit0~bit7 */
-    if (pa & DL_GPIO_PIN_26) r |= (1 << 0);  /* OUT0 */
-    if (pa & DL_GPIO_PIN_24) r |= (1 << 1);  /* OUT1 */
-    if (pb & DL_GPIO_PIN_24) r |= (1 << 2);  /* OUT2 */
-    if (pa & DL_GPIO_PIN_22) r |= (1 << 3);  /* OUT3 */
-    if (pa & DL_GPIO_PIN_15) r |= (1 << 4);  /* OUT4 */
-    if (pa & DL_GPIO_PIN_17) r |= (1 << 5);  /* OUT5 */
-    if (pb & DL_GPIO_PIN_18) r |= (1 << 6);  /* OUT6 */
-    if (pa & DL_GPIO_PIN_21) r |= (1 << 7);  /* OUT7 */
-
+    if (GPIOA->DIN31_0 & DL_GPIO_PIN_26) r |= (1 << 0);
+    if (GPIOA->DIN31_0 & DL_GPIO_PIN_24) r |= (1 << 1);
+    if (GPIOB->DIN31_0 & DL_GPIO_PIN_24) r |= (1 << 2);
+    if (GPIOA->DIN31_0 & DL_GPIO_PIN_22) r |= (1 << 3);
+    if (GPIOA->DIN31_0 & DL_GPIO_PIN_15) r |= (1 << 4);
+    if (GPIOA->DIN31_0 & DL_GPIO_PIN_17) r |= (1 << 5);
+    if (GPIOB->DIN31_0 & DL_GPIO_PIN_18) r |= (1 << 6);
+    if (GPIOA->DIN31_0 & DL_GPIO_PIN_21) r |= (1 << 7);
     return r;
 }
 
