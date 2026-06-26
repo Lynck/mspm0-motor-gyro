@@ -1,10 +1,10 @@
 ﻿/*
- * empty.c — 传感器诊断模式 (只读不驱)
- * 每 500ms 输出 S=位图，用串口观察传感器状态是否实时变化
+ * empty.c — MSPM0G3507 四轮底盘主程序
  */
 
 #include "ti_msp_dl_config.h"
 #include "Code/debug.h"
+#include "Code/motor_ctrl.h"
 #include "Code/line_patrol.h"
 
 volatile unsigned int delay_times = 0;
@@ -18,18 +18,23 @@ void delay_ms(unsigned int ms)
 int main(void)
 {
     SYSCFG_DL_init();
+
     Debug_Init();
     delay_ms(500);
-    Debug_Puts("\r\n=== Sensor Diag ===\r\n");
+    Debug_Puts("\r\n=== MSPM0G3507 Line Patrol ===\r\n");
+
+    MotorCtrl_Init();
+    delay_ms(100);
+    MotorCtrl_Start();
+    delay_ms(100);
+    Debug_Puts("[Motor] started\r\n");
+
+    LinePatrol_Init();
+    Debug_Puts("[Sensor] ready\r\n");
 
     while (1) {
-        delay_ms(500);
-
-        uint8_t s = LinePatrol_Read();
-        Debug_Puts("S=");
-        for (int i = 7; i >= 0; i--)
-            Debug_PutDec((s >> i) & 1);
-        Debug_Puts("\r\n");
+        delay_ms(5);
+        LinePatrol_Track(10);
     }
 }
 
