@@ -25,29 +25,33 @@ static int16_t last_valid_dev = 0;
 /* 8 路权重: 最左 -4 ... 最右 +4 */
 static const int8_t weight[8] = {-4, -3, -2, -1, 1, 2, 3, 4};
 
-/* 引脚定义 */
-#define LP0  DL_GPIO_PIN_26  /* PA26, OUT0 最左 */
-#define LP1  DL_GPIO_PIN_24  /* PA24, OUT1 */
-#define LP2  DL_GPIO_PIN_24  /* PB24, OUT2 */
-#define LP3  DL_GPIO_PIN_22  /* PA22, OUT3 */
-#define LP4  DL_GPIO_PIN_15  /* PA15, OUT4 */
-#define LP5  DL_GPIO_PIN_17  /* PA17, OUT5 */
-#define LP6  DL_GPIO_PIN_18  /* PB18, OUT6 */
-#define LP7  DL_GPIO_PIN_21  /* PA21, OUT7 最右 */
-
-static const uint32_t lp_pins[8] = {LP0, LP1, LP2, LP3, LP4, LP5, LP6, LP7};
-static GPIO_Regs * const lp_ports[8] = {GPIOA, GPIOA, GPIOB, GPIOA, GPIOA, GPIOA, GPIOB, GPIOA};
-
 /* GPIO 由 SysConfig 初始化 */
 void LinePatrol_Init(void) {}
 
-/* 逐引脚读取 8 路传感器 */
+/* 读取 8 路传感器 — 分两个端口一次性读取 */
 uint8_t LinePatrol_Read(void)
 {
     uint8_t r = 0;
-    for (int i = 0; i < 8; i++)
-        if (DL_GPIO_readPins(lp_ports[i], lp_pins[i]))
-            r |= (1 << i);
+
+    /* PA: OUT0=PA26, OUT1=PA24, OUT3=PA22, OUT4=PA15, OUT5=PA17, OUT7=PA21 */
+    uint32_t pa = DL_GPIO_readPins(GPIOA,
+        DL_GPIO_PIN_26 | DL_GPIO_PIN_24 | DL_GPIO_PIN_22 |
+        DL_GPIO_PIN_15 | DL_GPIO_PIN_17 | DL_GPIO_PIN_21);
+
+    /* PB: OUT2=PB24, OUT6=PB18 */
+    uint32_t pb = DL_GPIO_readPins(GPIOB,
+        DL_GPIO_PIN_24 | DL_GPIO_PIN_18);
+
+    /* 映射到 bit0~bit7 */
+    if (pa & DL_GPIO_PIN_26) r |= (1 << 0);  /* OUT0 */
+    if (pa & DL_GPIO_PIN_24) r |= (1 << 1);  /* OUT1 */
+    if (pb & DL_GPIO_PIN_24) r |= (1 << 2);  /* OUT2 */
+    if (pa & DL_GPIO_PIN_22) r |= (1 << 3);  /* OUT3 */
+    if (pa & DL_GPIO_PIN_15) r |= (1 << 4);  /* OUT4 */
+    if (pa & DL_GPIO_PIN_17) r |= (1 << 5);  /* OUT5 */
+    if (pb & DL_GPIO_PIN_18) r |= (1 << 6);  /* OUT6 */
+    if (pa & DL_GPIO_PIN_21) r |= (1 << 7);  /* OUT7 */
+
     return r;
 }
 
