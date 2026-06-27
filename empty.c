@@ -8,14 +8,12 @@
 #include "Code/motor_ctrl.h"
 #include "Code/line_patrol.h"
 
-/* SysTick 全局计数器 (在 delay.c 中定义) */
 extern volatile unsigned long sys_tick_ms;
 
 int main(void)
 {
-    SYSCFG_DL_init();
-    Delay_Init();  /* 手动初始化 SysTick 1ms */
-    NVIC_EnableIRQ(SysTick_IRQn);
+    SYSCFG_DL_init();       /* 含 TIMER_1MS 初始化 */
+    Delay_Init();
 
     Debug_Init();
     delay_ms(500);
@@ -36,8 +34,14 @@ int main(void)
     }
 }
 
-/* SysTick 中断 — 1ms 计数 */
-void SysTick_Handler(void)
+/* TIMER_1MS 中断 — 1ms 计数 */
+void TIMER_1MS_INST_IRQHandler(void)
 {
-    sys_tick_ms++;
+    switch (DL_TimerA_getPendingInterrupt(TIMER_1MS_INST)) {
+    case DL_TIMER_IIDX_ZERO:
+        sys_tick_ms++;
+        break;
+    default:
+        break;
+    }
 }

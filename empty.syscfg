@@ -13,6 +13,8 @@ const GPIO    = scripting.addModule("/ti/driverlib/GPIO", {}, false);
 const GPIO1   = GPIO.addInstance();
 const SYSCTL  = scripting.addModule("/ti/driverlib/SYSCTL");
 const SYSTICK = scripting.addModule("/ti/driverlib/SYSTICK");
+const TIMER   = scripting.addModule("/ti/driverlib/TIMER", {}, false);
+const TIMER1  = TIMER.addInstance();
 const UART    = scripting.addModule("/ti/driverlib/UART", {}, false);
 const UART1   = UART.addInstance();
 const UART2   = UART.addInstance();
@@ -91,8 +93,8 @@ SYSCTL.forceDefaultClkConfig = true;
 SYSCTL.clockTreeEn           = true;
 
 SYSTICK.periodEnable      = true;
-SYSTICK.interruptEnable   = true;
-SYSTICK.systickEnable     = true;
+SYSTICK.interruptEnable   = false;
+SYSTICK.systickEnable     = false;
 SYSTICK.period            = 80000;
 SYSTICK.interruptPriority = "1";
 
@@ -144,6 +146,14 @@ UART3.rxPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric5";
 UART3.rxPinConfig.hideOutputInversion  = scripting.forceWrite(false);
 UART3.rxPinConfig.onlyInternalResistor = scripting.forceWrite(false);
 UART3.rxPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
+
+TIMER1.$name            = "TIMER_1MS";
+TIMER1.timerStartTimer  = true;
+TIMER1.timerMode        = "PERIODIC_UP";
+TIMER1.timerPeriod      = "1 ms";
+TIMER1.timerClkDiv      = 8;
+TIMER1.timerClkPrescale = 100;
+TIMER1.interruptPriority = "2";
 
 /**
  * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
