@@ -1,4 +1,4 @@
-﻿/**
+/**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
  * @cliArgs --device "MSPM0G350X" --part "Default" --package "LQFP-64(PM)" --product "mspm0_sdk@2.09.00.00"
@@ -93,10 +93,19 @@ SYSCTL.forceDefaultClkConfig = true;
 SYSCTL.clockTreeEn           = true;
 
 SYSTICK.periodEnable      = true;
-SYSTICK.interruptEnable   = false;
-SYSTICK.systickEnable     = false;
 SYSTICK.period            = 80000;
 SYSTICK.interruptPriority = "1";
+SYSTICK.interruptEnable   = true;
+SYSTICK.systickEnable     = true;
+
+TIMER1.$name             = "TIMER_1MS";
+TIMER1.timerStartTimer   = true;
+TIMER1.timerMode         = "PERIODIC_UP";
+TIMER1.timerPeriod       = "1 ms";
+TIMER1.timerClkDiv       = 8;
+TIMER1.timerClkPrescale  = 100;
+TIMER1.interruptPriority = "2";
+TIMER1.interrupts        = ["ZERO"];
 
 UART1.$name                            = "user";
 UART1.uartClkSrc                       = "MFCLK";
@@ -147,14 +156,6 @@ UART3.rxPinConfig.hideOutputInversion  = scripting.forceWrite(false);
 UART3.rxPinConfig.onlyInternalResistor = scripting.forceWrite(false);
 UART3.rxPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
 
-TIMER1.$name            = "TIMER_1MS";
-TIMER1.timerStartTimer  = true;
-TIMER1.timerMode        = "PERIODIC_UP";
-TIMER1.timerPeriod      = "1 ms";
-TIMER1.timerClkDiv      = 8;
-TIMER1.timerClkPrescale = 100;
-TIMER1.interruptPriority = "2";
-
 /**
  * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
  * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
@@ -168,4 +169,5 @@ GPIO1.associatedPins[7].pin.$suggestSolution = "PA21";
 Board.peripheral.$suggestSolution            = "DEBUGSS";
 Board.peripheral.swclkPin.$suggestSolution   = "PA20";
 Board.peripheral.swdioPin.$suggestSolution   = "PA19";
+TIMER1.peripheral.$suggestSolution           = "TIMA0";
 UART1.peripheral.$suggestSolution            = "UART0";

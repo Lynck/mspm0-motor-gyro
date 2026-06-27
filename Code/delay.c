@@ -1,6 +1,7 @@
 ﻿/*
- * delay.c — TimerA 硬件定时器 1ms 非阻塞延时
- * 使用 SysConfig TIMER_1MS 模块 (TIMA0)
+ * delay.c — TimerA 硬件定时器 1ms
+ * TIMER_1MS (TIMA0), SysConfig 自动配置周期
+ * 中断需要手动使能 NVIC + 清除标志
  */
 
 #include "delay.h"
@@ -10,7 +11,12 @@ volatile unsigned long sys_tick_ms = 0;
 
 void Delay_Init(void)
 {
-    /* TIMER_1MS 由 SYSCFG_DL_init() 自动配置并启动, 无需额外操作 */
+    /* TIMER_1MS 时钟和周期已在 SYSCFG_DL_init() 中配置
+       但中断需要手动开 */
+    DL_TimerA_clearInterruptStatus(TIMER_1MS_INST, DL_TIMER_INTERRUPT_ZERO_EVENT);
+    DL_TimerA_enableInterrupt(TIMER_1MS_INST, DL_TIMER_INTERRUPT_ZERO_EVENT);
+    NVIC_ClearPendingIRQ(TIMER_1MS_INST_INT_IRQN);
+    NVIC_EnableIRQ(TIMER_1MS_INST_INT_IRQN);
 }
 
 void delay_ms(unsigned int ms)
