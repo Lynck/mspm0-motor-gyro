@@ -15,6 +15,7 @@ int main(void)
 {
     SYSCFG_DL_init();
     Delay_Init();  /* 手动初始化 SysTick 1ms */
+    NVIC_EnableIRQ(SysTick_IRQn);
 
     Debug_Init();
     delay_ms(500);
