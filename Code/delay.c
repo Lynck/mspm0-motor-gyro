@@ -1,29 +1,30 @@
 ﻿/*
  * delay.c — SysTick 1ms 非阻塞延时
- * 参考 my2024H 工程 clock.c 实现
+ * 参考 my2024H 工程 clock.c / SysTick_Init
+ *
+ * ⚠️ DL_SYSTICK_config(80000) 不会自动开 NVIC 中断
+ *    需要手动 NVIC_EnableIRQ + 设 SysTick->CTRL
  */
 
 #include "delay.h"
 
-/* SysTick 中断只能定义一次，这里不重复定义 SysTick_Handler
-   留给 empty.c 统一定义 */
-
 volatile unsigned long sys_tick_ms = 0;
 
-/* 初始化 SysTick 为 1ms 周期 */
 void Delay_Init(void)
 {
-    DL_SYSTICK_config(80000);  /* 80MHz / 80000 = 1ms */
+    /* 设置 SysTick 周期: 80MHz / 80000 = 1ms */
+    DL_SYSTICK_config(80000);
+
+    /* 确保 SysTick 异常使能 (DL_SYSTICK_config 不一定开) */
+    SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_CLKSOURCE_Msk;
 }
 
-/* 阻塞延时 ms 毫秒 */
 void delay_ms(unsigned int ms)
 {
     unsigned long start = sys_tick_ms;
     while (sys_tick_ms - start < ms);
 }
 
-/* 获取系统运行毫秒数 */
 unsigned long millis(void)
 {
     return sys_tick_ms;
