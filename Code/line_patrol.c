@@ -12,9 +12,9 @@
 #include "debug.h"
 
 /* PID 参数 — 低速循迹优化 */
-float LinePatrol_Kp = 1.0f;
+float LinePatrol_Kp = 2.0f;
 float LinePatrol_Ki = 0.005f;
-float LinePatrol_Kd = 2.0f;
+float LinePatrol_Kd = 1.0f;
 
 static float   pid_integral   = 0.0f;
 static int16_t pid_last_dev   = 0;
@@ -44,7 +44,7 @@ uint8_t LinePatrol_Read(void)
     return r;
 }
 
-/* 加权偏差 (-35~+35, 正=偏右) */
+/* 加权偏差 (-4 ~ +4, 正=偏右) */
 int16_t LinePatrol_CalcDeviation(uint8_t sensors)
 {
     int16_t sum = 0;
@@ -55,7 +55,7 @@ int16_t LinePatrol_CalcDeviation(uint8_t sensors)
     if (cnt == 0 || cnt == 8)
         return last_valid_dev;
 
-    int16_t d = (int16_t)((sum * 10) / cnt);
+    int16_t d = (int16_t)(sum / cnt);
     last_valid_dev = d;
     return d;
 }
@@ -66,10 +66,11 @@ int16_t LinePatrol_PID(int16_t dev)
     float err = (float)dev;
     float p = LinePatrol_Kp * err;
 
-    if (dev > 5 || dev < -5) {
+    //死区
+    if (dev > 1 || dev < -1) {
         pid_integral += LinePatrol_Ki * err;
-        if (pid_integral > 15.0f)  pid_integral = 15.0f;
-        if (pid_integral < -15.0f) pid_integral = -15.0f;
+        if (pid_integral > 30.0f)  pid_integral = 30.0f;
+        if (pid_integral < -30.0f) pid_integral = -30.0f;
     } else {
         pid_integral = 0.0f;
     }
@@ -78,8 +79,8 @@ int16_t LinePatrol_PID(int16_t dev)
     pid_last_dev = dev;
 
     float out = p + pid_integral + d;
-    if (out > 20.0f)  out = 20.0f;
-    if (out < -20.0f) out = -20.0f;
+    if (out > 40.0f)  out = 40.0f;
+    if (out < -40.0f) out = -40.0f;
 
     pid_output = (int16_t)out;
     return pid_output;

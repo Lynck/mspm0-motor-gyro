@@ -92,7 +92,7 @@ void Wheels_DiffDrive(int16_t linear, int16_t angular)
     int16_t fl = linear + angular;
     int16_t rl = linear + angular;
 
-    #define LIMIT 500
+    #define LIMIT 20
     if (fr >  LIMIT) fr =  LIMIT;  if (fr < -LIMIT) fr = -LIMIT;
     if (rr >  LIMIT) rr =  LIMIT;  if (rr < -LIMIT) rr = -LIMIT;
     if (fl >  LIMIT) fl =  LIMIT;  if (fl < -LIMIT) fl = -LIMIT;
