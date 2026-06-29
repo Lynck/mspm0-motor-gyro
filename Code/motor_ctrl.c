@@ -19,6 +19,11 @@
 #define DRV_ADDR  0x0A
 #define WHEEL_LIMIT 20
 #define MOTOR_WRITE_FRAME_LEN 17
+#define MOTOR_REG_SPEED_BASE 0x0000
+#define MOTOR_REG_RUN        0x0008
+#define MOTOR_REG_ENC_REV0   0x0009
+#define MOTOR_COUNT          4
+#define MOTOR_FRAME_GAP_MS   5
 
 static int16_t last_fr = 0;
 static int16_t last_rr = 0;
@@ -56,26 +61,50 @@ static void drv_write_single(uint16_t reg, uint16_t value)
 /* 发送字节流 */
 static void drv_send_bytes(const uint8_t *buf, int len)
 {
-    for (int i = 0; i < len; i++)
-        DL_UART_transmitDataBlocking(DRV_UART, buf[i]);
+    uint8_t rx_dump[16];
+
+    DL_UART_Main_drainRXFIFO(DRV_UART, rx_dump, sizeof(rx_dump));
+
+    for (int i = 0; i < len; i++) {
+        DL_UART_Main_transmitDataBlocking(DRV_UART, buf[i]);
+    }
+
+    while (DL_UART_Main_isBusy(DRV_UART)) {
+    }
+
+    delay_ms(MOTOR_FRAME_GAP_MS);
 }
 
-/* 初始化 — 只等待驱动板上电稳定，不写 PID/编码器配置 */
+/* 初始化 — 等待驱动板稳定，并清掉上一次调试可能留下的危险状态 */
 void MotorCtrl_Init(void)
 {
     delay_ms(1200);
+    MotorCtrl_Stop();
+    MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
+    MotorCtrl_ClearEncoderReverse();
 }
 
 /* 启动电机: 写寄存器 0x0008 = 1 */
 void MotorCtrl_Start(void)
 {
-    drv_write_single(0x0008, 0x0001);
+    drv_write_single(MOTOR_REG_RUN, 0x0001);
+    MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
+    MotorCtrl_ClearEncoderReverse();
+    MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
 }
 
 /* 停止电机: 写寄存器 0x0008 = 0 */
 void MotorCtrl_Stop(void)
 {
-    drv_write_single(0x0008, 0x0000);
+    drv_write_single(MOTOR_REG_RUN, 0x0000);
+}
+
+/* 清除四路编码器极性反向标志，避免闭环把某一路越纠越快 */
+void MotorCtrl_ClearEncoderReverse(void)
+{
+    for (uint8_t motor_id = 0; motor_id < MOTOR_COUNT; motor_id++) {
+        drv_write_single(MOTOR_REG_ENC_REV0 + motor_id, 0x0000);
+    }
 }
 
 /* 批量写四路速度 (不做取反，调用方负责方向) */
@@ -173,18 +202,23 @@ void Wheels_LineDrive(int16_t base_speed, int16_t steer)
 
 void MotorCtrl_TestOneMotor(uint8_t motor_id, int16_t speed)
 {
-    int16_t m0 = 0;
-    int16_t m1 = 0;
-    int16_t m2 = 0;
-    int16_t m3 = 0;
+    int16_t raw_speed;
 
-    switch (motor_id) {
-    case 0: m0 = speed; break;
-    case 1: m1 = speed; break;
-    case 2: m2 = speed; break;
-    case 3: m3 = -speed; break;
-    default: return;
+    if (motor_id >= MOTOR_COUNT) {
+        return;
     }
 
-    MotorCtrl_SetRawSpeeds(m0, m1, m2, m3);
+    raw_speed = (motor_id == 3) ? -speed : speed;
+    MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
+    drv_write_single(MOTOR_REG_SPEED_BASE + motor_id, (uint16_t)raw_speed);
+}
+
+void MotorCtrl_TestSequence(int16_t speed, unsigned int run_ms)
+{
+    for (uint8_t motor_id = 0; motor_id < MOTOR_COUNT; motor_id++) {
+        MotorCtrl_TestOneMotor(motor_id, speed);
+        delay_ms(run_ms);
+        MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
+        delay_ms(500);
+    }
 }

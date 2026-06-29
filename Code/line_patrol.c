@@ -101,11 +101,18 @@ void LinePatrol_Track(int16_t speed)
     uint8_t  s     = LinePatrol_Read();
     int16_t dev    = LinePatrol_CalcDeviation(s);
     int16_t steer  = LinePatrol_PID(dev);
+    int16_t right  = speed - steer;
+    int16_t left   = speed + steer;
+
+    if (right > 20) right = 20;
+    if (right < 0)  right = 0;
+    if (left > 20)  left = 20;
+    if (left < 0)   left = 0;
 
     static uint8_t motor_div = 0;
     if (++motor_div >= 4) {
         motor_div = 0;
-        Wheels_LineDrive(speed, steer);
+        Wheels_SetSpeeds(right, right, left, left);
     }
 
     static int dbg = 0;
