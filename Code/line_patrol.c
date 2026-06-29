@@ -79,12 +79,12 @@ int16_t LinePatrol_PID(int16_t dev)
     pid_last_dev = dev;
 
     float out = p + pid_integral + d;
-    if (out > 15.0f)  out = 15.0f;
-    if (out < -15.0f) out = -15.0f;
+    if (out > 10.0f)  out = 10.0f;
+    if (out < -10.0f) out = -10.0f;
 
     pid_output = (int16_t)out;
-    if (pid_output > 0 && pid_output < 4) pid_output = 4;
-    if (pid_output < 0 && pid_output > -4) pid_output = -4;
+    if (pid_output > 0 && pid_output < 3) pid_output = 3;
+    if (pid_output < 0 && pid_output > -3) pid_output = -3;
     return pid_output;
 }
 
@@ -101,7 +101,7 @@ void LinePatrol_Track(int16_t speed)
     uint8_t  s     = LinePatrol_Read();
     int16_t dev    = LinePatrol_CalcDeviation(s);
     int16_t steer  = LinePatrol_PID(dev);
-    Wheels_DiffDrive(speed, steer);
+    Wheels_LineDrive(speed, steer);
 
     static int dbg = 0;
     if (++dbg >= 50) {
@@ -112,6 +112,16 @@ void LinePatrol_Track(int16_t speed)
         Debug_PutDec(dev);
         Debug_Puts(" steer=");
         Debug_PutDec(steer);
+        int16_t fr, rr, fl, rl;
+        Wheels_GetLastSpeeds(&fr, &rr, &fl, &rl);
+        Debug_Puts(" W=");
+        Debug_PutDec(fr);
+        Debug_Puts(",");
+        Debug_PutDec(rr);
+        Debug_Puts(",");
+        Debug_PutDec(fl);
+        Debug_Puts(",");
+        Debug_PutDec(rl);
         Debug_Puts("\r\n");
     }
 }

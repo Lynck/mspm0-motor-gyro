@@ -32,6 +32,12 @@ void Wheels_SetSpeeds(int16_t fr, int16_t rr, int16_t fl, int16_t rl);
 /* 差分驱动: linear=线速度, angular=角速度 (正=顺时针) */
 void Wheels_DiffDrive(int16_t linear, int16_t angular);
 
+/* 低速循迹差速: 四轮保持向前，只改变左右两侧速度 */
+void Wheels_LineDrive(int16_t base_speed, int16_t steer);
+
+/* 获取最近一次 Wheels_SetSpeeds 的四轮目标值 */
+void Wheels_GetLastSpeeds(int16_t *fr, int16_t *rr, int16_t *fl, int16_t *rl);
+
 /* 停止所有轮子 */
 void Wheels_Stop(void);
 

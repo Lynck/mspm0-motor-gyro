@@ -16,6 +16,19 @@
 
 #define DRV_UART  Motor_INST
 #define DRV_ADDR  0x0A
+#define WHEEL_LIMIT 20
+
+static int16_t last_fr = 0;
+static int16_t last_rr = 0;
+static int16_t last_fl = 0;
+static int16_t last_rl = 0;
+
+static int16_t clamp_speed(int16_t speed)
+{
+    if (speed > WHEEL_LIMIT) return WHEEL_LIMIT;
+    if (speed < -WHEEL_LIMIT) return -WHEEL_LIMIT;
+    return speed;
+}
 
 /* 发送字节流 */
 static void drv_send_bytes(const uint8_t *buf, int len)
@@ -75,7 +88,19 @@ void MotorCtrl_SetRawSpeeds(int16_t m0, int16_t m1, int16_t m2, int16_t m3)
 /* 设置四轮速度 (左后轮自动取反) */
 void Wheels_SetSpeeds(int16_t fr, int16_t rr, int16_t fl, int16_t rl)
 {
+    last_fr = fr;
+    last_rr = rr;
+    last_fl = fl;
+    last_rl = rl;
     MotorCtrl_SetRawSpeeds(fr, rr, fl, -rl);
+}
+
+void Wheels_GetLastSpeeds(int16_t *fr, int16_t *rr, int16_t *fl, int16_t *rl)
+{
+    if (fr) *fr = last_fr;
+    if (rr) *rr = last_rr;
+    if (fl) *fl = last_fl;
+    if (rl) *rl = last_rl;
 }
 
 /* 停止 */
@@ -92,11 +117,32 @@ void Wheels_DiffDrive(int16_t linear, int16_t angular)
     int16_t fl = linear + angular;
     int16_t rl = linear + angular;
 
-    #define LIMIT 20
-    if (fr >  LIMIT) fr =  LIMIT;  if (fr < -LIMIT) fr = -LIMIT;
-    if (rr >  LIMIT) rr =  LIMIT;  if (rr < -LIMIT) rr = -LIMIT;
-    if (fl >  LIMIT) fl =  LIMIT;  if (fl < -LIMIT) fl = -LIMIT;
-    if (rl >  LIMIT) rl =  LIMIT;  if (rl < -LIMIT) rl = -LIMIT;
+    fr = clamp_speed(fr);
+    rr = clamp_speed(rr);
+    fl = clamp_speed(fl);
+    rl = clamp_speed(rl);
 
     Wheels_SetSpeeds(fr, rr, fl, rl);
+}
+
+void Wheels_LineDrive(int16_t base_speed, int16_t steer)
+{
+    int16_t right = base_speed;
+    int16_t left  = base_speed;
+
+    if (steer > 0) {
+        right = base_speed - steer;
+        left  = base_speed + steer / 2;
+    } else if (steer < 0) {
+        right = base_speed + (-steer) / 2;
+        left  = base_speed + steer;
+    }
+
+    if (right < 4) right = 4;
+    if (left  < 4) left  = 4;
+
+    right = clamp_speed(right);
+    left  = clamp_speed(left);
+
+    Wheels_SetSpeeds(right, right, left, left);
 }
