@@ -19,7 +19,6 @@
 #define DRV_ADDR  0x0A
 #define WHEEL_LIMIT 20
 #define MOTOR_WRITE_FRAME_LEN 17
-#define MOTOR_PID_FRAME_LEN 33
 
 static int16_t last_fr = 0;
 static int16_t last_rr = 0;
@@ -54,38 +53,6 @@ static void drv_write_single(uint16_t reg, uint16_t value)
     drv_send_bytes(f, i);
 }
 
-static void drv_set_default_pid(void)
-{
-    uint8_t f[MOTOR_PID_FRAME_LEN];
-    int i = 0;
-    const uint16_t kp = 40000;
-    const uint16_t ki = 4900;
-    const uint16_t kd = 0;
-
-    f[i++] = DRV_ADDR;
-    f[i++] = 0x10;
-    f[i++] = 0x00;
-    f[i++] = 0x15;
-    f[i++] = 0x00;
-    f[i++] = 0x0C;
-    f[i++] = 0x18;
-
-    for (int motor = 0; motor < 4; motor++) {
-        f[i++] = (uint8_t)((kp >> 8) & 0xFF);
-        f[i++] = (uint8_t)(kp & 0xFF);
-        f[i++] = (uint8_t)((ki >> 8) & 0xFF);
-        f[i++] = (uint8_t)(ki & 0xFF);
-        f[i++] = (uint8_t)((kd >> 8) & 0xFF);
-        f[i++] = (uint8_t)(kd & 0xFF);
-    }
-
-    uint16_t crc = CRC16(f, i);
-    f[i++] = (uint8_t)(crc & 0xFF);
-    f[i++] = (uint8_t)((crc >> 8) & 0xFF);
-
-    drv_send_bytes(f, i);
-}
-
 /* 发送字节流 */
 static void drv_send_bytes(const uint8_t *buf, int len)
 {
@@ -93,22 +60,10 @@ static void drv_send_bytes(const uint8_t *buf, int len)
         DL_UART_transmitDataBlocking(DRV_UART, buf[i]);
 }
 
-/* 初始化 — 按原厂闭环例程配置驱动板 */
+/* 初始化 — 只等待驱动板上电稳定，不写 PID/编码器配置 */
 void MotorCtrl_Init(void)
 {
     delay_ms(1200);
-    MotorCtrl_Start();
-    delay_ms(50);
-    drv_set_default_pid();
-    delay_ms(50);
-    drv_write_single(0x0009, 0x0001);
-    delay_ms(50);
-    drv_write_single(0x000A, 0x0001);
-    delay_ms(50);
-    drv_write_single(0x000B, 0x0001);
-    delay_ms(50);
-    drv_write_single(0x000C, 0x0001);
-    delay_ms(50);
 }
 
 /* 启动电机: 写寄存器 0x0008 = 1 */
