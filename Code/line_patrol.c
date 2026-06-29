@@ -11,18 +11,18 @@
 #include "motor_ctrl.h"
 #include "debug.h"
 
-/* PID 参数 — 低速循迹优化 */
-float LinePatrol_Kp = 2.0f;
-float LinePatrol_Ki = 0.005f;
-float LinePatrol_Kd = 1.0f;
+/* PID 参数 — 适配 base_speed=10 的低速循迹 */
+float LinePatrol_Kp = 0.7f;
+float LinePatrol_Ki = 0.0f;
+float LinePatrol_Kd = 0.2f;
 
 static float   pid_integral   = 0.0f;
 static int16_t pid_last_dev   = 0;
 static int16_t pid_output     = 0;
 static int16_t last_valid_dev = 0;
 
-/* OUT1(最左)-4 ... OUT4=-1, OUT5=+1 ... OUT8(最右)+4 */
-static const int8_t weight[8] = {-4, -3, -2, -1, 1, 2, 3, 4};
+/* OUT1(最左)-35 ... OUT4=-5, OUT5=+5 ... OUT8(最右)+35 */
+static const int8_t weight[8] = {-35, -25, -15, -5, 5, 15, 25, 35};
 
 /* GPIO 由 SysConfig 初始化 */
 void LinePatrol_Init(void) {}
@@ -44,7 +44,7 @@ uint8_t LinePatrol_Read(void)
     return r;
 }
 
-/* 加权偏差 (-4 ~ +4, 正=偏右) */
+/* 加权偏差 (-35 ~ +35, 正=黑线在右侧) */
 int16_t LinePatrol_CalcDeviation(uint8_t sensors)
 {
     int16_t sum = 0;
@@ -79,10 +79,12 @@ int16_t LinePatrol_PID(int16_t dev)
     pid_last_dev = dev;
 
     float out = p + pid_integral + d;
-    if (out > 40.0f)  out = 40.0f;
-    if (out < -40.0f) out = -40.0f;
+    if (out > 15.0f)  out = 15.0f;
+    if (out < -15.0f) out = -15.0f;
 
     pid_output = (int16_t)out;
+    if (pid_output > 0 && pid_output < 4) pid_output = 4;
+    if (pid_output < 0 && pid_output > -4) pid_output = -4;
     return pid_output;
 }
 
@@ -104,8 +106,8 @@ void LinePatrol_Track(int16_t speed)
     static int dbg = 0;
     if (++dbg >= 50) {
         dbg = 0;
-        Debug_Puts("S=");
-        for (int i = 7; i >= 0; i--) Debug_PutDec((s >> i) & 1);
+        Debug_Puts("OUT=");
+        for (int i = 0; i < 8; i++) Debug_PutDec((s >> i) & 1);
         Debug_Puts(" dev=");
         Debug_PutDec(dev);
         Debug_Puts(" steer=");
