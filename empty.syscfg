@@ -12,8 +12,6 @@
 const GPIO    = scripting.addModule("/ti/driverlib/GPIO", {}, false);
 const GPIO1   = GPIO.addInstance();
 const SYSCTL  = scripting.addModule("/ti/driverlib/SYSCTL");
-const TIMER   = scripting.addModule("/ti/driverlib/TIMER", {}, false);
-const TIMER1  = TIMER.addInstance();
 const UART    = scripting.addModule("/ti/driverlib/UART", {}, false);
 const UART1   = UART.addInstance();
 const UART2   = UART.addInstance();
@@ -91,15 +89,6 @@ const Board = scripting.addModule("/ti/driverlib/Board", {}, false);
 SYSCTL.forceDefaultClkConfig = true;
 SYSCTL.clockTreeEn           = true;
 
-TIMER1.$name             = "TIMER_1MS";
-TIMER1.timerStartTimer   = true;
-TIMER1.timerMode         = "PERIODIC_UP";
-TIMER1.timerPeriod       = "1 ms";
-TIMER1.timerClkDiv       = 8;
-TIMER1.timerClkPrescale  = 100;
-TIMER1.interruptPriority = "2";
-TIMER1.interrupts        = ["ZERO"];
-
 UART1.$name                            = "user";
 UART1.uartClkSrc                       = "MFCLK";
 UART1.targetBaudRate                   = 115200;
@@ -162,5 +151,4 @@ GPIO1.associatedPins[7].pin.$suggestSolution = "PA21";
 Board.peripheral.$suggestSolution            = "DEBUGSS";
 Board.peripheral.swclkPin.$suggestSolution   = "PA20";
 Board.peripheral.swdioPin.$suggestSolution   = "PA19";
-TIMER1.peripheral.$suggestSolution           = "TIMA0";
 UART1.peripheral.$suggestSolution            = "UART0";

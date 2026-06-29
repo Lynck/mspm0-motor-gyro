@@ -7,12 +7,11 @@
 #include "Code/debug.h"
 #include "Code/motor_ctrl.h"
 #include "Code/line_patrol.h"
-
-extern volatile unsigned long sys_tick_ms;
+#include "Code/gyro.h"
 
 int main(void)
 {
-    SYSCFG_DL_init();       /* 含 TIMER_1MS 初始化 */
+    SYSCFG_DL_init();
     Delay_Init();
 
     Debug_Init();
@@ -34,12 +33,11 @@ int main(void)
     }
 }
 
-/* TIMER_1MS 中断 — 1ms 计数 */
-void TIMER_1MS_INST_IRQHandler(void)
+void MSPMotor_INST_IRQHandler(void)
 {
-    switch (DL_TimerA_getPendingInterrupt(TIMER_1MS_INST)) {
-    case DL_TIMER_IIDX_ZERO:
-        sys_tick_ms++;
+    switch (DL_UART_Main_getPendingInterrupt(MSPMotor_INST)) {
+    case DL_UART_MAIN_IIDX_RX:
+        Gyro_ParseByte(DL_UART_Main_receiveData(MSPMotor_INST));
         break;
     default:
         break;
