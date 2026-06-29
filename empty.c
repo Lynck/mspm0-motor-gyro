@@ -9,6 +9,7 @@
 #include "Code/line_patrol.h"
 #include "Code/gyro.h"
 
+#define MOTOR_SAFE_STOP_MODE 1
 #define MOTOR_DIAG_MODE 0
 
 int main(void)
@@ -19,6 +20,15 @@ int main(void)
     Debug_Init();
     delay_ms(500);
     Debug_Puts("\r\n=== MSPM0G3507 Line Patrol ===\r\n");
+
+#if MOTOR_SAFE_STOP_MODE
+    MotorCtrl_EmergencyStop();
+    Debug_Puts("[Motor] safe-stop mode: no start command\r\n");
+    while (1) {
+        MotorCtrl_EmergencyStop();
+        delay_ms(100);
+    }
+#endif
 
     MotorCtrl_Init();
     MotorCtrl_Start();

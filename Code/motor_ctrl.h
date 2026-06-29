@@ -22,6 +22,7 @@
 void MotorCtrl_Init(void);
 void MotorCtrl_Start(void);
 void MotorCtrl_Stop(void);
+void MotorCtrl_EmergencyStop(void);
 void MotorCtrl_ClearEncoderReverse(void);
 void MotorCtrl_SetRawSpeeds(int16_t m0, int16_t m1, int16_t m2, int16_t m3);
 void MotorCtrl_TestOneMotor(uint8_t motor_id, int16_t speed);

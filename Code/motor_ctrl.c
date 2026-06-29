@@ -78,9 +78,9 @@ static void drv_send_bytes(const uint8_t *buf, int len)
 /* 初始化 — 等待驱动板稳定，并清掉上一次调试可能留下的危险状态 */
 void MotorCtrl_Init(void)
 {
+    MotorCtrl_EmergencyStop();
     delay_ms(1200);
-    MotorCtrl_Stop();
-    MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
+    MotorCtrl_EmergencyStop();
     MotorCtrl_ClearEncoderReverse();
 }
 
@@ -97,6 +97,12 @@ void MotorCtrl_Start(void)
 void MotorCtrl_Stop(void)
 {
     drv_write_single(MOTOR_REG_RUN, 0x0000);
+}
+
+void MotorCtrl_EmergencyStop(void)
+{
+    drv_write_single(MOTOR_REG_RUN, 0x0000);
+    MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
 }
 
 /* 清除四路编码器极性反向标志，避免闭环把某一路越纠越快 */
