@@ -12,7 +12,6 @@
 const GPIO    = scripting.addModule("/ti/driverlib/GPIO", {}, false);
 const GPIO1   = GPIO.addInstance();
 const SYSCTL  = scripting.addModule("/ti/driverlib/SYSCTL");
-const SYSTICK = scripting.addModule("/ti/driverlib/SYSTICK");
 const TIMER   = scripting.addModule("/ti/driverlib/TIMER", {}, false);
 const TIMER1  = TIMER.addInstance();
 const UART    = scripting.addModule("/ti/driverlib/UART", {}, false);
@@ -91,12 +90,6 @@ const Board = scripting.addModule("/ti/driverlib/Board", {}, false);
 
 SYSCTL.forceDefaultClkConfig = true;
 SYSCTL.clockTreeEn           = true;
-
-SYSTICK.periodEnable      = true;
-SYSTICK.period            = 80000;
-SYSTICK.interruptPriority = "1";
-SYSTICK.interruptEnable   = true;
-SYSTICK.systickEnable     = true;
 
 TIMER1.$name             = "TIMER_1MS";
 TIMER1.timerStartTimer   = true;
