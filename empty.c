@@ -9,7 +9,8 @@
 #include "Code/line_patrol.h"
 #include "Code/gyro.h"
 
-#define MOTOR_SAFE_STOP_MODE 1
+#define MOTOR_SAFE_STOP_MODE 0
+#define MOTOR1_ONLY_TEST_MODE 1
 #define MOTOR_DIAG_MODE 0
 
 int main(void)
@@ -34,6 +35,14 @@ int main(void)
     MotorCtrl_Start();
     delay_ms(100);
     Debug_Puts("[Motor] started\r\n");
+
+#if MOTOR1_ONLY_TEST_MODE
+    Debug_Puts("[Motor] test motor1 only, speed=5\r\n");
+    while (1) {
+        MotorCtrl_TestOneMotor(1, 5);
+        delay_ms(100);
+    }
+#endif
 
 #if MOTOR_DIAG_MODE
     Debug_Puts("[Motor] diagnostic: one motor at a time\r\n");

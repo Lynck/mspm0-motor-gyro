@@ -215,7 +215,6 @@ void MotorCtrl_TestOneMotor(uint8_t motor_id, int16_t speed)
     }
 
     raw_speed = (motor_id == 3) ? -speed : speed;
-    MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
     drv_write_single(MOTOR_REG_SPEED_BASE + motor_id, (uint16_t)raw_speed);
 }
 
