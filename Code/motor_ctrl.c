@@ -13,22 +13,77 @@
 
 #include "motor_ctrl.h"
 #include "crc16.h"
+#include "delay.h"
 
 #define DRV_UART  Motor_INST
 #define DRV_ADDR  0x0A
 #define WHEEL_LIMIT 20
 #define MOTOR_WRITE_FRAME_LEN 17
+#define MOTOR_PID_FRAME_LEN 33
 
 static int16_t last_fr = 0;
 static int16_t last_rr = 0;
 static int16_t last_fl = 0;
 static int16_t last_rl = 0;
 
+static void drv_send_bytes(const uint8_t *buf, int len);
+
 static int16_t clamp_speed(int16_t speed)
 {
     if (speed > WHEEL_LIMIT) return WHEEL_LIMIT;
     if (speed < -WHEEL_LIMIT) return -WHEEL_LIMIT;
     return speed;
+}
+
+static void drv_write_single(uint16_t reg, uint16_t value)
+{
+    uint8_t f[8];
+    int i = 0;
+
+    f[i++] = DRV_ADDR;
+    f[i++] = 0x06;
+    f[i++] = (uint8_t)((reg >> 8) & 0xFF);
+    f[i++] = (uint8_t)(reg & 0xFF);
+    f[i++] = (uint8_t)((value >> 8) & 0xFF);
+    f[i++] = (uint8_t)(value & 0xFF);
+
+    uint16_t crc = CRC16(f, i);
+    f[i++] = (uint8_t)(crc & 0xFF);
+    f[i++] = (uint8_t)((crc >> 8) & 0xFF);
+
+    drv_send_bytes(f, i);
+}
+
+static void drv_set_default_pid(void)
+{
+    uint8_t f[MOTOR_PID_FRAME_LEN];
+    int i = 0;
+    const uint16_t kp = 40000;
+    const uint16_t ki = 4900;
+    const uint16_t kd = 0;
+
+    f[i++] = DRV_ADDR;
+    f[i++] = 0x10;
+    f[i++] = 0x00;
+    f[i++] = 0x15;
+    f[i++] = 0x00;
+    f[i++] = 0x0C;
+    f[i++] = 0x18;
+
+    for (int motor = 0; motor < 4; motor++) {
+        f[i++] = (uint8_t)((kp >> 8) & 0xFF);
+        f[i++] = (uint8_t)(kp & 0xFF);
+        f[i++] = (uint8_t)((ki >> 8) & 0xFF);
+        f[i++] = (uint8_t)(ki & 0xFF);
+        f[i++] = (uint8_t)((kd >> 8) & 0xFF);
+        f[i++] = (uint8_t)(kd & 0xFF);
+    }
+
+    uint16_t crc = CRC16(f, i);
+    f[i++] = (uint8_t)(crc & 0xFF);
+    f[i++] = (uint8_t)((crc >> 8) & 0xFF);
+
+    drv_send_bytes(f, i);
 }
 
 /* 发送字节流 */
@@ -38,21 +93,34 @@ static void drv_send_bytes(const uint8_t *buf, int len)
         DL_UART_transmitDataBlocking(DRV_UART, buf[i]);
 }
 
-/* 初始化 — SysConfig 已完成 UART1 配置 */
-void MotorCtrl_Init(void) {}
+/* 初始化 — 按原厂闭环例程配置驱动板 */
+void MotorCtrl_Init(void)
+{
+    delay_ms(1200);
+    MotorCtrl_Start();
+    delay_ms(50);
+    drv_set_default_pid();
+    delay_ms(50);
+    drv_write_single(0x0009, 0x0001);
+    delay_ms(50);
+    drv_write_single(0x000A, 0x0001);
+    delay_ms(50);
+    drv_write_single(0x000B, 0x0001);
+    delay_ms(50);
+    drv_write_single(0x000C, 0x0001);
+    delay_ms(50);
+}
 
 /* 启动电机: 写寄存器 0x0008 = 1 */
 void MotorCtrl_Start(void)
 {
-    uint8_t f[] = {DRV_ADDR, 0x06, 0x00, 0x08, 0x00, 0x01, 0xC8, 0xB3};
-    drv_send_bytes(f, 8);
+    drv_write_single(0x0008, 0x0001);
 }
 
 /* 停止电机: 写寄存器 0x0008 = 0 */
 void MotorCtrl_Stop(void)
 {
-    uint8_t f[] = {DRV_ADDR, 0x06, 0x00, 0x08, 0x00, 0x00, 0x89, 0x73};
-    drv_send_bytes(f, 8);
+    drv_write_single(0x0008, 0x0000);
 }
 
 /* 批量写四路速度 (不做取反，调用方负责方向) */
@@ -146,4 +214,22 @@ void Wheels_LineDrive(int16_t base_speed, int16_t steer)
     left  = clamp_speed(left);
 
     Wheels_SetSpeeds(right, right, left, left);
+}
+
+void MotorCtrl_TestOneMotor(uint8_t motor_id, int16_t speed)
+{
+    int16_t m0 = 0;
+    int16_t m1 = 0;
+    int16_t m2 = 0;
+    int16_t m3 = 0;
+
+    switch (motor_id) {
+    case 0: m0 = speed; break;
+    case 1: m1 = speed; break;
+    case 2: m2 = speed; break;
+    case 3: m3 = -speed; break;
+    default: return;
+    }
+
+    MotorCtrl_SetRawSpeeds(m0, m1, m2, m3);
 }

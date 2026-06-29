@@ -19,9 +19,6 @@ int main(void)
     Debug_Puts("\r\n=== MSPM0G3507 Line Patrol ===\r\n");
 
     MotorCtrl_Init();
-    delay_ms(100);
-    MotorCtrl_Start();
-    delay_ms(100);
     Debug_Puts("[Motor] started\r\n");
 
     LinePatrol_Init();

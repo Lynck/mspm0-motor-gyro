@@ -101,7 +101,12 @@ void LinePatrol_Track(int16_t speed)
     uint8_t  s     = LinePatrol_Read();
     int16_t dev    = LinePatrol_CalcDeviation(s);
     int16_t steer  = LinePatrol_PID(dev);
-    Wheels_LineDrive(speed, steer);
+
+    static uint8_t motor_div = 0;
+    if (++motor_div >= 4) {
+        motor_div = 0;
+        Wheels_LineDrive(speed, steer);
+    }
 
     static int dbg = 0;
     if (++dbg >= 50) {
