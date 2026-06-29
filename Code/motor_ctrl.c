@@ -17,6 +17,7 @@
 #define DRV_UART  Motor_INST
 #define DRV_ADDR  0x0A
 #define WHEEL_LIMIT 20
+#define MOTOR_WRITE_FRAME_LEN 17
 
 static int16_t last_fr = 0;
 static int16_t last_rr = 0;
@@ -57,7 +58,7 @@ void MotorCtrl_Stop(void)
 /* 批量写四路速度 (不做取反，调用方负责方向) */
 void MotorCtrl_SetRawSpeeds(int16_t m0, int16_t m1, int16_t m2, int16_t m3)
 {
-    uint8_t f[15];
+    uint8_t f[MOTOR_WRITE_FRAME_LEN];
     int i = 0;
 
     f[i++] = DRV_ADDR;  f[i++] = 0x10;  /* 写多个寄存器 */
