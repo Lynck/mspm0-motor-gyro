@@ -18,7 +18,7 @@
  * 当前为了排查“电机1不转、电机0飞快”，只打开 MOTOR1_ONLY_TEST_MODE。
  */
 #define MOTOR_SAFE_STOP_MODE 0
-#define MOTOR1_ONLY_TEST_MODE 1
+#define MOTOR1_ONLY_TEST_MODE 0
 #define MOTOR_DIAG_MODE 0
 
 int main(void)
@@ -78,9 +78,19 @@ int main(void)
     Debug_Puts("[Sensor] ready\r\n");
 
     while (1) {
-        /* 正常循迹入口：当前被上面的测试模式屏蔽，关闭测试模式后才会运行到这里。 */
+        /*
+         * 四路驱动板资料里的官方测试帧不是“四路全正”：
+         *   0A 10 00 00 00 04 08 FF FB FF FB 00 05 FF FB 19 1F
+         * 对应原始寄存器速度为：电机0=-5，电机1=-5，电机2=+5，电机3=-5。
+         *
+         * 所以这里先按同样的原始方向放大到 10 做硬件核对：
+         *   电机0=-10，电机1=-10，电机2=+10，电机3=-10。
+         *
+         * 注意：MotorCtrl_SetRawSpeeds() 是“驱动板原始寄存器速度”，
+         * 不等于 Wheels_SetSpeeds() 的“车体前进语义速度”。
+         */
         delay_ms(5);
-        LinePatrol_Track(10);
+        MotorCtrl_SetRawSpeeds(-10, -10, 10, -10);
     }
 }
 
