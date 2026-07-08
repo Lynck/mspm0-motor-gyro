@@ -19,10 +19,14 @@
 #define DRV_ADDR  0x0A
 #define WHEEL_LIMIT 20
 #define MOTOR_WRITE_FRAME_LEN 17
+
+/* 驱动板寄存器地址，来自《四路驱动板.md》的 Modbus RTU 协议表。 */
 #define MOTOR_REG_SPEED_BASE 0x0000
 #define MOTOR_REG_RUN        0x0008
 #define MOTOR_REG_ENC_REV0   0x0009
 #define MOTOR_COUNT          4
+
+/* Modbus RTU 帧之间保留一点空闲时间，避免驱动板还没处理完上一帧就收到下一帧。 */
 #define MOTOR_FRAME_GAP_MS   5
 
 static int16_t last_fr = 0;
@@ -44,6 +48,10 @@ static void drv_write_single(uint16_t reg, uint16_t value)
     uint8_t f[8];
     int i = 0;
 
+    /*
+     * 功能码 0x06：写单个保持寄存器。
+     * 帧格式：地址、功能码、寄存器高低字节、数据高低字节、CRC低字节、CRC高字节。
+     */
     f[i++] = DRV_ADDR;
     f[i++] = 0x06;
     f[i++] = (uint8_t)((reg >> 8) & 0xFF);
@@ -63,12 +71,14 @@ static void drv_send_bytes(const uint8_t *buf, int len)
 {
     uint8_t rx_dump[16];
 
+    /* 发送前清掉驱动板上一次回复残留，避免 RX FIFO 堆积影响后续通信。 */
     DL_UART_Main_drainRXFIFO(DRV_UART, rx_dump, sizeof(rx_dump));
 
     for (int i = 0; i < len; i++) {
         DL_UART_Main_transmitDataBlocking(DRV_UART, buf[i]);
     }
 
+    /* 等最后一个字节真正发完，再留帧间隔。 */
     while (DL_UART_Main_isBusy(DRV_UART)) {
     }
 
@@ -78,6 +88,10 @@ static void drv_send_bytes(const uint8_t *buf, int len)
 /* 初始化 — 等待驱动板稳定，并清掉上一次调试可能留下的危险状态 */
 void MotorCtrl_Init(void)
 {
+    /*
+     * 上电先停机，再等待驱动板稳定，然后再停一次。
+     * 这样做是为了清理驱动板可能保留的旧速度/旧启动状态。
+     */
     MotorCtrl_EmergencyStop();
     delay_ms(1200);
     MotorCtrl_EmergencyStop();
@@ -87,6 +101,10 @@ void MotorCtrl_Init(void)
 /* 启动电机: 写寄存器 0x0008 = 1 */
 void MotorCtrl_Start(void)
 {
+    /*
+     * 启动驱动板后立刻写四路 0，并清一次编码器极性反向标志。
+     * 目的是避免闭环驱动板带着旧速度或旧极性配置直接运行。
+     */
     drv_write_single(MOTOR_REG_RUN, 0x0001);
     MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
     MotorCtrl_ClearEncoderReverse();
@@ -101,6 +119,11 @@ void MotorCtrl_Stop(void)
 
 void MotorCtrl_EmergencyStop(void)
 {
+    /*
+     * 紧急停机组合：
+     *   1. 写 0x0008=0，关闭驱动板运行；
+     *   2. 再批量写四路速度 0，清掉目标速度寄存器。
+     */
     drv_write_single(MOTOR_REG_RUN, 0x0000);
     MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
 }
@@ -119,6 +142,10 @@ void MotorCtrl_SetRawSpeeds(int16_t m0, int16_t m1, int16_t m2, int16_t m3)
     uint8_t f[MOTOR_WRITE_FRAME_LEN];
     int i = 0;
 
+    /*
+     * 功能码 0x10：从 0x0000 开始连续写 4 个速度寄存器。
+     * 注意：这里是底层原始速度，不处理左后轮装反；上层 Wheels_SetSpeeds() 才处理方向映射。
+     */
     f[i++] = DRV_ADDR;  f[i++] = 0x10;  /* 写多个寄存器 */
     f[i++] = 0x00;      f[i++] = 0x00;  /* 起始地址 0x0000 */
     f[i++] = 0x00;      f[i++] = 0x04;  /* 4 个寄存器 */
@@ -147,6 +174,11 @@ void MotorCtrl_SetRawSpeeds(int16_t m0, int16_t m1, int16_t m2, int16_t m3)
 /* 设置四轮速度 (左后轮自动取反) */
 void Wheels_SetSpeeds(int16_t fr, int16_t rr, int16_t fl, int16_t rl)
 {
+    /*
+     * 车体语义速度：
+     *   fr=右前轮，rr=右后轮，fl=左前轮，rl=左后轮。
+     * 左后轮电机装反，所以写入驱动板前对 rl 取反。
+     */
     last_fr = fr;
     last_rr = rr;
     last_fl = fl;
@@ -214,6 +246,12 @@ void MotorCtrl_TestOneMotor(uint8_t motor_id, int16_t speed)
         return;
     }
 
+    /*
+     * 单电机测试只写一个速度寄存器：
+     *   motor_id=0 -> 0x0000，motor_id=1 -> 0x0001，
+     *   motor_id=2 -> 0x0002，motor_id=3 -> 0x0003。
+     * 电机3是左后轮，机械方向装反，所以测试时也需要取反。
+     */
     raw_speed = (motor_id == 3) ? -speed : speed;
     drv_write_single(MOTOR_REG_SPEED_BASE + motor_id, (uint16_t)raw_speed);
 }

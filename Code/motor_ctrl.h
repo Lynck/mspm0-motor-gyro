@@ -19,13 +19,29 @@
  */
 
 /* 底层 API */
+
+/* 初始化电机驱动板通信状态：停机、清速度、等待稳定、清编码器极性反向标志 */
 void MotorCtrl_Init(void);
+
+/* 启动驱动板运行：写寄存器 0x0008=1 */
 void MotorCtrl_Start(void);
+
+/* 停止驱动板运行：写寄存器 0x0008=0 */
 void MotorCtrl_Stop(void);
+
+/* 紧急停机：停止驱动板，并把四路速度目标全部写 0 */
 void MotorCtrl_EmergencyStop(void);
+
+/* 清除四路编码器反向标志：用于排查闭环方向不一致导致的飞车问题 */
 void MotorCtrl_ClearEncoderReverse(void);
+
+/* 原始速度写入：直接写寄存器 0x0000~0x0003，不处理任何车轮方向映射 */
 void MotorCtrl_SetRawSpeeds(int16_t m0, int16_t m1, int16_t m2, int16_t m3);
+
+/* 单电机测试：只写一个速度寄存器，用来确认驱动板通道和物理电机接线 */
 void MotorCtrl_TestOneMotor(uint8_t motor_id, int16_t speed);
+
+/* 四电机顺序测试：按 0->1->2->3 逐个转动，方便核对通道编号 */
 void MotorCtrl_TestSequence(int16_t speed, unsigned int run_ms);
 
 /* 上层 API (推荐使用) */
