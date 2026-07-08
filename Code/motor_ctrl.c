@@ -26,6 +26,23 @@
 #define MOTOR_REG_ENC_REV0   0x0009
 #define MOTOR_COUNT          4
 
+/*
+ * 闭环编码器极性配置：
+ *   0 = 不反向编码器反馈；
+ *   1 = 反向编码器反馈。
+ *
+ * 现象判断：
+ *   - 当前按官方测试方向发送 (-10, -10, +10, -10) 后，电机2/3正常；
+ *   - 电机0飞快、电机1异常，说明右侧两路更像“目标速度方向”和“编码器反馈方向”相反；
+ *   - 闭环遇到反馈方向反了，会越纠越大，看起来就是某一路突然飞快或不受控。
+ *
+ * 因此这里只把电机0/1的编码器反馈取反，电机2/3保持不反向。
+ */
+#define MOTOR_ENC_REV_M0     1
+#define MOTOR_ENC_REV_M1     1
+#define MOTOR_ENC_REV_M2     0
+#define MOTOR_ENC_REV_M3     0
+
 /* Modbus RTU 帧之间保留一点空闲时间，避免驱动板还没处理完上一帧就收到下一帧。 */
 #define MOTOR_FRAME_GAP_MS   5
 
@@ -35,6 +52,7 @@ static int16_t last_fl = 0;
 static int16_t last_rl = 0;
 
 static void drv_send_bytes(const uint8_t *buf, int len);
+static void MotorCtrl_ApplyEncoderPolarity(void);
 
 static int16_t clamp_speed(int16_t speed)
 {
@@ -95,7 +113,7 @@ void MotorCtrl_Init(void)
     MotorCtrl_EmergencyStop();
     delay_ms(1200);
     MotorCtrl_EmergencyStop();
-    MotorCtrl_ClearEncoderReverse();
+    MotorCtrl_ApplyEncoderPolarity();
 }
 
 /* 启动电机: 写寄存器 0x0008 = 1 */
@@ -107,7 +125,7 @@ void MotorCtrl_Start(void)
      */
     drv_write_single(MOTOR_REG_RUN, 0x0001);
     MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
-    MotorCtrl_ClearEncoderReverse();
+    MotorCtrl_ApplyEncoderPolarity();
     MotorCtrl_SetRawSpeeds(0, 0, 0, 0);
 }
 
@@ -134,6 +152,23 @@ void MotorCtrl_ClearEncoderReverse(void)
     for (uint8_t motor_id = 0; motor_id < MOTOR_COUNT; motor_id++) {
         drv_write_single(MOTOR_REG_ENC_REV0 + motor_id, 0x0000);
     }
+}
+
+static void MotorCtrl_ApplyEncoderPolarity(void)
+{
+    /*
+     * 寄存器对应关系来自官方闭环例程：
+     *   0x0009 -> 电机0编码器极性
+     *   0x000A -> 电机1编码器极性
+     *   0x000B -> 电机2编码器极性
+     *   0x000C -> 电机3编码器极性
+     *
+     * 这里不要再统一清零，因为右侧两路现在需要反向反馈。
+     */
+    drv_write_single(MOTOR_REG_ENC_REV0 + 0, MOTOR_ENC_REV_M0);
+    drv_write_single(MOTOR_REG_ENC_REV0 + 1, MOTOR_ENC_REV_M1);
+    drv_write_single(MOTOR_REG_ENC_REV0 + 2, MOTOR_ENC_REV_M2);
+    drv_write_single(MOTOR_REG_ENC_REV0 + 3, MOTOR_ENC_REV_M3);
 }
 
 /* 批量写四路速度 (不做取反，调用方负责方向) */
